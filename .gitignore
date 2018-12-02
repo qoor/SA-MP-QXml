@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+/.vs
+/Debug
+/QXml/Release/QXml.tlog
+/QXml/Debug/QXml.tlog
+/QXml/Debug/vc141.pdb
+/QXml/Debug/vc141.idb
+/QXml/Debug/QXml.log
+/QXml/Release/vc141.pdb
+/QXml/Release/QXml.log
+/Release
