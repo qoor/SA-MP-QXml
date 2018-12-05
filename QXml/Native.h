@@ -20,4 +20,8 @@ namespace Native
 	cell AMX_NATIVE_CALL SetAttributeNext(AMX* amx, cell* params);
 	cell AMX_NATIVE_CALL GetAttributeName(AMX* amx, cell* params);
 	cell AMX_NATIVE_CALL GetAttributeValue(AMX* amx, cell* params);
-}
+	cell AMX_NATIVE_CALL GetAttributeValueInt(AMX* amx, cell* params);
+	cell AMX_NATIVE_CALL GetAttributeValueFloat(AMX* amx, cell* params);
+};
+
+bool InsertAttributeValueToParam(QXMLAttribute* attribute, char* dest, int size);

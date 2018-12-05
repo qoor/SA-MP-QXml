@@ -1,3 +1,5 @@
+#pragma warning(disable:4996)
+
 #include "XML.h"
 #include "Debug.h"
 #include "Native.h"
@@ -42,23 +44,26 @@ cell AMX_NATIVE_CALL Native::CreateXMLDocument(AMX* amx, cell* params)
 
 cell AMX_NATIVE_CALL Native::DestroyXMLDocument(AMX* amx, cell* params)
 {
-	if (params[1] == INVALID_HANDLE)
+	cell* destAddress;
+	int handle = INVALID_HANDLE;
+
+	amx_GetAddr(amx, params[1], &destAddress);
+
+	handle = *destAddress;
+
+	if (handle == INVALID_HANDLE)
 		return 0;
 
-	QXMLDocument* document = gXMLHandler->getDocumentByHandle(params[1]);
+	QXMLDocument* document = gXMLHandler->getDocumentByHandle(handle);
 
 	if (document == NULL || !document->isCreated())
 		return 0;
 
-	cell* varAddress;
-
-	amx_GetAddr(amx, params[1], &varAddress);
-
-	*varAddress = INVALID_HANDLE;
+	*destAddress = INVALID_HANDLE;
 
 	gXMLHandler->destroyDocument(document);
 
-	DEBUG << "도큐멘트 id: " << params[1] << " 이(가) 종료 됨." << std::endl;
+	DEBUG << "도큐멘트 id: " << handle << " 이(가) 종료 됨." << std::endl;
 
 	return 1;
 }
@@ -87,7 +92,7 @@ cell AMX_NATIVE_CALL Native::CreateXMLNodePointer(AMX* amx, cell* params)
 cell AMX_NATIVE_CALL Native::CreateXMLCloneNodePointer(AMX* amx, cell* params)
 {
 	if (params[1] == INVALID_HANDLE)
-		return 0;
+		return INVALID_HANDLE;
 
 	QXMLNode* node = gXMLHandler->getNodeByHandle(params[1]);
 
@@ -110,23 +115,30 @@ cell AMX_NATIVE_CALL Native::CreateXMLCloneNodePointer(AMX* amx, cell* params)
 
 cell AMX_NATIVE_CALL Native::DestroyXMLNodePointer(AMX* amx, cell* params)
 {
-	if (params[1] == INVALID_HANDLE)
+	cell* destArray;
+	int handle = INVALID_HANDLE;
+
+	amx_GetAddr(amx, params[1], &destArray);
+
+	handle = *destArray;
+
+	DEBUG << "노드 id: " << handle << "제거 시작" << std::endl;
+
+	if (handle == INVALID_HANDLE)
 		return 0;
 
-	QXMLNode* node = gXMLHandler->getNodeByHandle(params[1]);
+	QXMLNode* node = gXMLHandler->getNodeByHandle(handle);
 
 	if (node == NULL || !node->isCreated())
 		return 0;
 
-	cell* varAddress = NULL;
+	*destArray = INVALID_HANDLE;
 
-	amx_GetAddr(amx, params[1], &varAddress);
-
-	*varAddress = INVALID_HANDLE;
+	DEBUG << "노드 레퍼런스 변수 초기화 됨." << std::endl;
 
 	gXMLHandler->destroyNode(node);
 
-	DEBUG << "노드 id: " << params[1] << " 이(가) 제거 됨." << std::endl;
+	DEBUG << "노드 id: " << handle << " 이(가) 제거 됨." << std::endl;
 
 	return 1;
 }
@@ -262,23 +274,26 @@ cell AMX_NATIVE_CALL Native::CreateXMLAttributePointer(AMX* amx, cell* params)
 
 cell AMX_NATIVE_CALL Native::DestroyXMLAttributePointer(AMX* amx, cell* params)
 {
-	if (params[1] == INVALID_HANDLE)
+	cell* destAddress;
+	int handle = INVALID_HANDLE;
+
+	amx_GetAddr(amx, params[1], &destAddress);
+
+	handle = *destAddress;
+
+	if (handle == INVALID_HANDLE)
 		return 0;
 
-	QXMLAttribute* attribute = gXMLHandler->getAttributeByHandle(params[1]);
+	QXMLAttribute* attribute = gXMLHandler->getAttributeByHandle(handle);
 
 	if (attribute == NULL || !attribute->isCreated())
 		return 0;
 
-	cell* varAddress;
-
-	amx_GetAddr(amx, params[1], &varAddress);
-
-	*varAddress = INVALID_HANDLE;
+	*destAddress = INVALID_HANDLE;
 
 	gXMLHandler->destroyAttribute(attribute);
 
-	DEBUG << "애트리뷰트 id: " << params[1] << " (이)가 제거 됨." << std::endl;
+	DEBUG << "애트리뷰트 id: " << handle << " (이)가 제거 됨." << std::endl;
 
 	return 0;
 }
@@ -301,7 +316,7 @@ cell AMX_NATIVE_CALL Native::SetAttributeNext(AMX* amx, cell* params)
 {
 	QXMLAttribute* attribute = gXMLHandler->getAttributeByHandle(params[1]);
 
-	if (attribute == NULL || !attribute->isCreated() || attribute->getElement() == NULL)
+	if (attribute == NULL || !attribute->isCreated() || attribute->getElement() == NULL || attribute->getAttributePointer() == NULL)
 	{
 		DEBUG << "애트리뷰트가 생성되지 않았거나 노드 엘리먼트 업데이트를 실패했습니다." << std::endl;
 
@@ -346,15 +361,51 @@ cell AMX_NATIVE_CALL Native::GetAttributeValue(AMX* amx, cell* params)
 
 		if (attributePointer != NULL)
 		{
-			cell* destAddr;
-
-			amx_GetAddr(amx, params[2], &destAddr);
-
 			const char* value = attributePointer->Value();
 
-			amx_SetString(destAddr, value, 0, 0, params[3]);
+			if (value != NULL && strlen(value) > 0)
+			{
+				cell* destAddr;
 
-			return 1;
+				amx_GetAddr(amx, params[2], &destAddr);
+				amx_SetString(destAddr, value, 0, 0, params[3]);
+
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+cell AMX_NATIVE_CALL Native::GetAttributeValueInt(AMX* amx, cell* params)
+{
+	QXMLAttribute* attribute = gXMLHandler->getAttributeByHandle(params[1]);
+
+	if (attribute != NULL && attribute->isCreated())
+	{
+		const XMLAttribute* attributePointer = attribute->getAttributePointer();
+
+		if (attributePointer != NULL)
+			return attributePointer->IntValue();
+	}
+
+	return 0;
+}
+
+cell AMX_NATIVE_CALL Native::GetAttributeValueFloat(AMX* amx, cell* params)
+{
+	QXMLAttribute* attribute = gXMLHandler->getAttributeByHandle(params[1]);
+
+	if (attribute != NULL && attribute->isCreated())
+	{
+		const XMLAttribute* attributePointer = attribute->getAttributePointer();
+
+		if (attributePointer != NULL)
+		{
+			float floatValue = attributePointer->FloatValue();
+
+			return amx_ftoc(floatValue);
 		}
 	}
 

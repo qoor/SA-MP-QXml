@@ -3,8 +3,6 @@
 #include <iostream>
 #include <queue>
 
-#define MIN_ID_BUFFER_AMOUNT 10
-
 class IdAllocator
 {
 private:

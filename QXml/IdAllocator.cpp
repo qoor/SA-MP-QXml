@@ -1,4 +1,5 @@
 #include "IdAllocator.h"
+#include "Debug.h"
 
 int IdAllocator::AllocateId()
 {
@@ -22,6 +23,8 @@ int IdAllocator::DisallocateId(int id)
 		return 0;
 	
 	removeIds.push(id);
+
+	DEBUG << "id: " << id << " Áö¿öÁü" << std::endl;
 
 	return 1;
 }
