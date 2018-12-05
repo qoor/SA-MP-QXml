@@ -1,3 +1,5 @@
+LIBRARY "QXml"
+
 EXPORTS
 	Supports
 	Load

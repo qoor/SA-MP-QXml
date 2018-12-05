@@ -3,4 +3,6 @@
 #include "../AMX/amx/amx.h"
 #include "../AMX/plugincommon.h"
 
-#define PLUGIN_VERSION "v0.001"
+#include <string>
+
+#define PLUGIN_VERSION "v0.101"

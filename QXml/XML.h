@@ -4,90 +4,126 @@
 #include "../AMX/amx/amx.h"
 #include "../AMX/plugincommon.h"
 
-#include <vector>
+#include <unordered_map>
+#include <string>
+
+#define INVALID_HANDLE -1
 
 using namespace tinyxml2;
 
+class IdAllocator;
+
+class QXMLBase
+{
+protected:
+	bool created;
+	int handle;
+
+public:
+	QXMLBase() : created(false), handle(INVALID_HANDLE) {}
+	~QXMLBase() {}
+	inline int isCreated() const { return created; }
+	inline int getHandle() const { return handle; }
+};
+
+class QXMLDocument : public QXMLBase
+{
+private:
+	std::string path;
+	XMLDocument* document;
+
+public:
+	static IdAllocator documentIdAllocator;
+	
+	QXMLDocument(const std::string& path);
+	~QXMLDocument();
+	inline XMLDocument* getDocument() { return document; }
+};
+
+class QXMLNode : public QXMLBase
+{
+private:
+	QXMLDocument* qxmlDocument;
+	XMLNode* node;
+
+public:
+	static IdAllocator nodeIdAllocator;
+	
+	QXMLNode(QXMLDocument* document);
+	QXMLNode(const QXMLNode* node);
+	~QXMLNode();
+	inline XMLNode* getNode() { return node; }
+	inline QXMLDocument* getQXMLDocument() { return qxmlDocument; }
+	int setNodePointer(XMLNode* nodePointer);
+};
+
+class QXMLAttribute : public QXMLBase
+{
+private:
+	QXMLNode* qxmlNode;
+	XMLAttribute* attribute;
+	XMLElement* element;
+
+public:
+	static IdAllocator attributeIdAllocator;
+
+	QXMLAttribute(QXMLNode* node);
+	~QXMLAttribute();
+	inline QXMLNode* getQXMLNode() { return qxmlNode; }
+	inline const XMLAttribute* getAttributePointer() const { return attribute; }
+	int setAttributePointer(const XMLAttribute* attributePointer);
+	int updateElement();
+	inline XMLElement* getElement() { return element; }
+};
+
 class QXMLHandler
 {
+private:
+	std::unordered_map<int, QXMLDocument*> documentList;
+	std::unordered_map<int, QXMLNode*> nodeList;
+	std::unordered_map<int, QXMLAttribute*> attributeList;
+
 public:
-	static int docCount;
+	QXMLHandler() {}
+	~QXMLHandler() {}
+
+	int createDocument(const std::string& path);
+	QXMLDocument* getDocumentByHandle(int handle);
+	int destroyDocument(const QXMLDocument* document);
+	int createNode(QXMLDocument* document);
+	int createNode(const QXMLNode* sourceNode);
+	QXMLNode* getNodeByHandle(int handle);
+	int destroyNode(QXMLNode* node);
+	int createAttribute(QXMLNode* node);
+	QXMLAttribute* getAttributeByHandle(int handle);
+	int destroyAttribute(const QXMLAttribute* attribute);
+};
+
+/*class QXMLNode : public QXMLBase<QXMLNode>
+{
+	class QXMLDocument;
+
+protected:
+	QXMLNode* node;
+
+public:
 	static int nodeCount;
-	static int attributeCount;
 
-	QXMLHandler();
-	~QXMLHandler();
+	QXMLNode(QXMLDocument* document);
+	~QXMLNode();
+	XMLElement* getElement();
+};
 
-	class QXMLDocument
-	{
-	private:
-		bool success;
-		std::string path;
-		XMLDocument *doc;
-		int handle;
-
-	public:
-		QXMLDocument(const std::string& path);
-		~QXMLDocument();
-		int isOpened();
-		int getHandle();
-		XMLDocument* getDocument();
-	};
-
-	class QXMLNode
-	{
-	private:
-		QXMLDocument* doc;
-		XMLNode* node;
-		bool success;
-		int handle;
-
-	public:
-		QXMLNode(QXMLDocument *doc);
-		~QXMLNode();
-		int isCreated();
-		int getHandle();
-		XMLDocument* getDocument();
-		QXMLDocument* getQXMLDocument();
-		XMLNode* getNode();
-		XMLElement* getNodeElement();
-		int setNode(XMLNode* node);
-	};
-
-	class QXMLAttribute
-	{
-	private:
-		//QXMLNode* node;
-		const XMLAttribute* attribute;
-		XMLElement* element;
-		QXMLNode* node;
-		bool success;
-		int handle;
-
-	public:
-		QXMLAttribute(QXMLNode* node);
-		~QXMLAttribute();
-		int isCreated();
-		int getHandle();
-		QXMLNode* getNode();
-		XMLElement* getElement();
-		int updateElement();
-		const XMLAttribute* getAttribute();
-		int setAttribute(const XMLAttribute* attribute);
-	};
+class QXMLAttribute : protected QXMLNode<QXMLAttribute>
+{
+	class QXMLNode;
 
 private:
-	std::vector<QXMLHandler::QXMLDocument*> docs;
-	std::vector<QXMLHandler::QXMLNode*> nodes;
-	std::vector<QXMLHandler::QXMLAttribute*> attributes;
+	XMLAttribute* attribute;
 
 public:
-	int openDocument(const std::string& path);
-	int closeDocument(int docHandler);
-	int createNode(QXMLHandler::QXMLDocument* doc);
-	int createAttribute(QXMLHandler::QXMLNode* node);
+	static int attributeCount;
 
-	QXMLDocument* getDocument(int handle);
-	QXMLNode* getNode(int handle);
-	QXMLAttribute* getAttribute(int handle);
-};
+	QXMLAttribute(QXMLNode* node);
+	~QXMLAttribute();
+};*/

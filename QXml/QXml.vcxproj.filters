@@ -57,6 +57,12 @@
     <ClInclude Include="Debug.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="IdAllocator.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Native.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -81,6 +87,12 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Debug.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="IdAllocator.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Native.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

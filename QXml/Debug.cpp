@@ -1,6 +1,10 @@
 #include "Debug.h"
 
-int Debug::debug = Debug::DEBUG_NONE;
+#if _DEBUG
+	int Debug::debug = Debug::DEBUG_MODE;
+#else
+	int Debug::debug = Debug::DEBUG_NONE;
+#endif
 std::ofstream Debug::file;
 
 bool Debug::Initialize(const std::string& path)

@@ -1,378 +1,316 @@
 #include "stdafx.h"
 #include "XML.h"
 #include "Debug.h"
+#include "IdAllocator.h"
 
-int QXMLHandler::docCount = -1;
-int QXMLHandler::nodeCount = -1;
-int QXMLHandler::attributeCount = -1;
+IdAllocator QXMLDocument::documentIdAllocator;
+IdAllocator QXMLNode::nodeIdAllocator;
+IdAllocator QXMLAttribute::attributeIdAllocator;
 
-extern QXMLHandler* gXMLHandler;
-
-QXMLHandler::QXMLHandler()
+QXMLDocument::QXMLDocument(const std::string& path) : document(NULL)
 {
-
-}
-
-QXMLHandler::~QXMLHandler()
-{
-
-}
-
-QXMLHandler::QXMLDocument::QXMLDocument(const std::string& path)
-{
-	std::string realPath = "scriptfiles/";
-
-	realPath.append(path);
-
-	this->path = path;
-	this->doc = new XMLDocument();
-
-	if (doc->LoadFile(realPath.c_str()) == XML_SUCCESS)
+	if (path.length() > 0)
 	{
-		success = true;
-		handle = (++docCount);
+		handle = documentIdAllocator.AllocateId();
+
+		if (handle != INVALID_HANDLE)
+		{
+			std::string fullPath = "scriptfiles/";
+
+			document = new XMLDocument();
+
+			fullPath.append(path);
+
+			if (document->LoadFile(fullPath.c_str()) == XML_SUCCESS)
+				created = true;
+			else
+				documentIdAllocator.DisallocateId(handle);
+		}
 	}
 }
 
-QXMLHandler::QXMLDocument::~QXMLDocument()
+QXMLDocument::~QXMLDocument()
 {
-	if (isOpened())
+	if (document != NULL)
+		delete document;
+
+	if (handle != INVALID_HANDLE)
+		documentIdAllocator.DisallocateId(handle);
+}
+
+QXMLNode::QXMLNode(QXMLDocument* document) : qxmlDocument(NULL), node(NULL)
+{
+	if (document->isCreated())
 	{
-		if (handle == docCount)
-			--docCount;
-		
-		delete doc;
+		handle = nodeIdAllocator.AllocateId();
+
+		if (handle != INVALID_HANDLE)
+		{
+			this->qxmlDocument = document;
+			created = true;
+		}
 	}
 }
 
-int QXMLHandler::QXMLDocument::isOpened()
+QXMLNode::QXMLNode(const QXMLNode* node) : qxmlDocument(NULL), node(NULL)
 {
-	return success;
-}
-
-int QXMLHandler::QXMLDocument::getHandle()
-{
-	if (success)
-		return handle;
-	
-	return -1;
-}
-
-XMLDocument* QXMLHandler::QXMLDocument::getDocument()
-{
-	if (success)
-		return doc;
-
-	return NULL;
-}
-
-QXMLHandler::QXMLNode::QXMLNode(QXMLDocument *doc)
-{
-	if (doc != NULL)
+	if (node->isCreated())
 	{
-		this->doc = doc;
-		success = true;
-		handle = (++nodeCount);
-		node = NULL;
+		handle = nodeIdAllocator.AllocateId();
+
+		if (handle != INVALID_HANDLE)
+		{
+			qxmlDocument = node->qxmlDocument;
+			this->node = node->node;
+			created = true;
+		}
 	}
 }
 
-QXMLHandler::QXMLNode::~QXMLNode()
+QXMLNode::~QXMLNode()
 {
-	if (isCreated())
+	if (handle != INVALID_HANDLE)
+		nodeIdAllocator.DisallocateId(handle);
+}
+
+int QXMLNode::setNodePointer(XMLNode* nodePointer)
+{
+	if (nodePointer != NULL && isCreated())
 	{
-		if (handle == nodeCount)
-			--nodeCount;
-	}
-}
-
-int QXMLHandler::QXMLNode::isCreated()
-{
-	return success;
-}
-
-int QXMLHandler::QXMLNode::getHandle()
-{
-	if (isCreated())
-		return handle;
-	
-	return -1;
-}
-
-XMLNode* QXMLHandler::QXMLNode::getNode()
-{
-	if (isCreated())
-		return node;
-
-	return NULL;
-}
-
-XMLElement* QXMLHandler::QXMLNode::getNodeElement()
-{
-	if (node != NULL && isCreated())
-	{
-		XMLElement* element = node->ToElement();
-
-		return element;
-	}
-
-	return NULL;
-}
-
-int QXMLHandler::QXMLNode::setNode(XMLNode* node)
-{
-	DEBUG << "노드 id " << getHandle() << " 다음 노드 지정 시작. 기존 포인터: " << reinterpret_cast<int*>(this->node) << std::endl;
-
-	if (node != NULL && isCreated())
-	{
-		this->node = node;
-
-		DEBUG << "노드 id " << getHandle() << " 다음 노드 지정 성공. 포인터: " << reinterpret_cast<int*>(node) << std::endl;
+		this->node = nodePointer;
 
 		return 1;
 	}
 
-	DEBUG << "노드 id " << getHandle() << " 다음 노드 지정 실패. 포인터: " << reinterpret_cast<int*>(node) << std::endl;
-
 	return 0;
 }
 
-XMLDocument* QXMLHandler::QXMLNode::getDocument()
+QXMLAttribute::QXMLAttribute(QXMLNode* node) : qxmlNode(NULL), attribute(NULL), element(NULL)
 {
-	if (isCreated() && doc->isOpened())
-		return doc->getDocument();
-
-	return NULL;
-}
-
-QXMLHandler::QXMLDocument* QXMLHandler::QXMLNode::getQXMLDocument()
-{
-	if (isCreated() && doc->isOpened())
-		return doc;
-	
-	return NULL;
-}
-
-QXMLHandler::QXMLAttribute::QXMLAttribute(QXMLHandler::QXMLNode* node)
-{
-	if (node != NULL && node->isCreated())
-	{
-		success = true;
-		handle = (++attributeCount);
-		element = NULL;
-		this->node = node;
-	}
-}
-
-QXMLHandler::QXMLAttribute::~QXMLAttribute()
-{
-	if (isCreated())
-	{
-		if (handle == attributeCount)
-			--attributeCount;
-	}
-}
-
-int QXMLHandler::QXMLAttribute::isCreated()
-{
-	return success;
-}
-
-int QXMLHandler::QXMLAttribute::getHandle()
-{
-	if (isCreated())
-		return handle;
-
-	return -1;
-}
-
-QXMLHandler::QXMLNode* QXMLHandler::QXMLAttribute::getNode()
-{
-	if (isCreated() && node->isCreated())
-		return node;
-
-	return NULL;
-}
-
-XMLElement* QXMLHandler::QXMLAttribute::getElement()
-{
-	if (!isCreated())
-		return NULL;
-
-	return element;
-}
-
-int QXMLHandler::QXMLAttribute::updateElement()
-{
-	if (!isCreated() || node == NULL || !node->isCreated())
-		return 0;
-
-	element = node->getNodeElement();
-
-	return 1;
-}
-
-const XMLAttribute* QXMLHandler::QXMLAttribute::getAttribute()
-{
-	if (isCreated())
-		return attribute;
-
-	return 0;
-}
-
-int QXMLHandler::QXMLAttribute::setAttribute(const XMLAttribute* attribute)
-{
-	DEBUG << "애트리뷰트 id " << getHandle() << " 다음 애트리뷰트 지정 시작. 기존 포인터: " << reinterpret_cast<const int*>(this->attribute) << std::endl;
-
-	if (attribute == NULL || !isCreated())
-	{
-		DEBUG << "애트리뷰트 id " << getHandle() << " 다음 애트리뷰트 지정 실패. 포인터: " << reinterpret_cast<const int*>(attribute) << std::endl;
-
-		return 0;
-	}
-
-	this->attribute = attribute;
-
-	DEBUG << "애트리뷰트 id " << getHandle() << " 다음 애트리뷰트 지정 성공. 포인터: " << reinterpret_cast<const int*>(this->attribute) << std::endl;
-
-	return 1;
-}
-
-int QXMLHandler::openDocument(const std::string& path)
-{
-	QXMLDocument* doc = new QXMLDocument(path);
-
-	if (doc->isOpened())
-	{
-		this->docs.push_back(doc);
-
-		return doc->getHandle();
-	}
-	else
-	{
-		delete doc;
-
-		return -1;
-	}
-}
-
-int QXMLHandler::closeDocument(int docHandler)
-{
-	if (docHandler == -1)
-		return 0;
-	
-	for (unsigned int i = 0, size = attributes.size(); i < size; ++i)
-	{
-		if (attributes[i]->getNode()->getQXMLDocument()->getHandle() == docHandler)
-		{
-			delete attributes[i];
-
-			attributes.erase(i + attributes.begin());
-		}
-	}
-
-	for (unsigned int i = 0, size = nodes.size(); i < size; ++i)
-	{
-		if (nodes[i]->getQXMLDocument()->getHandle() == docHandler)
-		{
-			delete nodes[i];
-
-			nodes.erase(i + nodes.begin());
-		}
-	}
-
-	for (unsigned int i = 0, size = docs.size(); i < size; ++i)
-	{
-		if (docs[i]->getHandle() == docHandler)
-		{
-			delete docs[i];
-
-			docs.erase(i + docs.begin());
-
-			break;
-		}
-	}
-
-	return 1;
-}
-
-QXMLHandler::QXMLDocument* QXMLHandler::getDocument(int handle)
-{
-	if (handle != -1)
-	{
-		for (unsigned int i = 0; i < docs.size(); ++i)
-		{
-			if (docs[i]->getHandle() == handle)
-				return docs[i];
-		}
-	}
-
-	return NULL;
-}
-
-int QXMLHandler::createNode(QXMLHandler::QXMLDocument* doc)
-{
-	if (doc->getDocument() == NULL)
-		return 0;
-	
-	QXMLHandler::QXMLNode* node = new QXMLHandler::QXMLNode(doc);
-
 	if (node->isCreated())
 	{
-		this->nodes.push_back(node);
+		handle = attributeIdAllocator.AllocateId();
 
-		return node->getHandle();
+		if (handle != INVALID_HANDLE)
+		{
+			this->qxmlNode = node;
+			created = true;
+		}
 	}
-	else
+}
+
+QXMLAttribute::~QXMLAttribute()
+{
+	if (handle != INVALID_HANDLE)
+		attributeIdAllocator.DisallocateId(handle);
+}
+
+int QXMLAttribute::setAttributePointer(const XMLAttribute* attributePointer)
+{
+	if (attributePointer != NULL && isCreated())
+	{
+		this->attribute = const_cast<XMLAttribute*>(attributePointer);
+
+		return 1;
+	}
+
+	return 0;
+}
+
+int QXMLAttribute::updateElement()
+{
+	if (!isCreated() || qxmlNode == NULL)
+		return 0;
+
+	XMLNode* node = qxmlNode->getNode();
+
+	if (node == NULL)
+		return 0;
+
+	XMLElement* sourceElement = node->ToElement();
+
+	if (sourceElement == NULL)
+		return 0;
+	
+	element = sourceElement;
+
+	return 1;
+}
+
+int QXMLHandler::createDocument(const std::string& path)
+{
+	QXMLDocument* document = new QXMLDocument(path);
+
+	DEBUG << "도큐멘트 객체 생성 됨." << std::endl;
+
+	if (!document->isCreated())
+	{
+		delete document;
+
+		return INVALID_HANDLE;
+	}
+
+	DEBUG << "도큐멘트 객체 컨테이너에 입력." << std::endl;
+
+	int handle = document->getHandle();
+
+	documentList.insert(std::unordered_map<int, QXMLDocument*>::value_type(handle, document));
+
+	return handle;
+}
+
+QXMLDocument* QXMLHandler::getDocumentByHandle(int handle)
+{
+	if (handle != INVALID_HANDLE)
+	{
+		std::unordered_map<int, QXMLDocument*>::iterator it = documentList.find(handle);
+
+		if (it != documentList.end())
+			return it->second;
+	}
+
+	return NULL;
+}
+
+int QXMLHandler::destroyDocument(const QXMLDocument* document)
+{
+	if (document != NULL && document->isCreated())
+	{
+		int handle = document->getHandle();
+
+		if (handle != INVALID_HANDLE)
+			documentList.erase(handle);
+
+		delete document;
+
+		typedef std::unordered_map<int, QXMLNode*>::iterator nodeIterType;
+
+		for (nodeIterType it = nodeList.begin(); it != nodeList.end(); ++it)
+		{
+			if (it->second->getQXMLDocument() == document)
+				destroyNode(it->second);
+		}
+	}
+
+	return 0;
+}
+
+int QXMLHandler::createNode(QXMLDocument* document)
+{
+	QXMLNode* node = new QXMLNode(document);
+
+	if (!node->isCreated())
 	{
 		delete node;
 
-		return -1;
+		return INVALID_HANDLE;
 	}
+
+	int handle = node->getHandle();
+
+	nodeList.insert(std::unordered_map<int, QXMLNode*>::value_type(handle, node));
+
+	return handle;
 }
 
-QXMLHandler::QXMLNode* QXMLHandler::getNode(int handle)
+int QXMLHandler::createNode(const QXMLNode* sourceNode)
 {
-	if (handle != -1)
+	QXMLNode* node = new QXMLNode(sourceNode);
+
+	if (!node->isCreated())
 	{
-		for (unsigned int i = 0; i < nodes.size(); ++i)
-		{
-			if (nodes[i]->getHandle() == handle)
-				return nodes[i];
-		}
+		delete node;
+
+		return INVALID_HANDLE;
+	}
+
+	int handle = node->getHandle();
+
+	nodeList.insert(std::unordered_map<int, QXMLNode*>::value_type(handle, node));
+
+	return handle;
+}
+
+QXMLNode* QXMLHandler::getNodeByHandle(int handle)
+{
+	if (handle != INVALID_HANDLE)
+	{
+		std::unordered_map<int, QXMLNode*>::iterator it = nodeList.find(handle);
+
+		if (it != nodeList.end())
+			return it->second;
 	}
 
 	return NULL;
 }
 
-int QXMLHandler::createAttribute(QXMLHandler::QXMLNode* node)
+int QXMLHandler::destroyNode(QXMLNode* node)
 {
-	QXMLHandler::QXMLAttribute* attribute = new QXMLHandler::QXMLAttribute(node);
-	
-	DEBUG << "애트리뷰트 힙 공간 할당 됨" << std::endl;
-
-	if (attribute->isCreated())
+	if (node != NULL && node->isCreated())
 	{
-		this->attributes.push_back(attribute);
+		int handle = node->getHandle();
 
-		return attribute->getHandle();
+		if (handle != INVALID_HANDLE)
+			nodeList.erase(handle);
+
+		delete node;
+
+		typedef std::unordered_map<int, QXMLAttribute*>::iterator attributeIdItterator;
+
+		for (attributeIdItterator it = attributeList.begin(); it != attributeList.end(); ++it)
+		{
+			if (it->second->getQXMLNode() == node)
+				destroyAttribute(it->second);
+		}
 	}
-	else
+
+	return 0;
+}
+
+int QXMLHandler::createAttribute(QXMLNode* node)
+{
+	QXMLAttribute* attribute = new QXMLAttribute(node);
+
+	if (!attribute->isCreated())
+	{
 		delete attribute;
 
-	return -1;
+		return INVALID_HANDLE;
+	}
+
+	int handle = attribute->getHandle();
+
+	attributeList.insert(std::unordered_map<int, QXMLAttribute*>::value_type(handle, attribute));
+
+	return handle;
 }
 
-QXMLHandler::QXMLAttribute* QXMLHandler::getAttribute(int handle)
+QXMLAttribute* QXMLHandler::getAttributeByHandle(int handle)
 {
-	if (handle != -1)
+	if (handle != INVALID_HANDLE)
 	{
-		for (unsigned int i = 0; i < attributes.size(); ++i)
-		{
-			if (attributes[i]->getHandle() == handle)
-				return attributes[i];
-		}
+		std::unordered_map<int, QXMLAttribute*>::iterator it = attributeList.find(handle);
+
+		if (it != attributeList.end())
+			return it->second;
 	}
 
 	return NULL;
+}
+
+int QXMLHandler::destroyAttribute(const QXMLAttribute* attribute)
+{
+	if (attribute != NULL && attribute->isCreated())
+	{
+		int handle = attribute->getHandle();
+
+		if (handle != INVALID_HANDLE)
+			attributeList.erase(handle);
+
+		delete attribute;
+
+		return 1;
+	}
+
+	return 0;
 }
