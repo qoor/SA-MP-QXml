@@ -5,4 +5,4 @@
 
 #include <string>
 
-#define PLUGIN_VERSION "v0.103"
+#define PLUGIN_VERSION "v0.104"

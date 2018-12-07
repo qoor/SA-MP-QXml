@@ -217,7 +217,7 @@ cell AMX_NATIVE_CALL Native::GetNodeName(AMX* amx, cell* params)
 	return 0;
 }
 
-cell AMX_NATIVE_CALL Native::GetNodeValue(AMX* amx, cell* params)
+/*cell AMX_NATIVE_CALL Native::GetNodeValue(AMX* amx, cell* params)
 {
 	QXMLNode* node = gXMLHandler->getNodeByHandle(params[1]);
 
@@ -245,7 +245,7 @@ cell AMX_NATIVE_CALL Native::GetNodeValue(AMX* amx, cell* params)
 	}
 
 	return 0;
-}
+}*/
 
 cell AMX_NATIVE_CALL Native::CreateXMLAttributePointer(AMX* amx, cell* params)
 {
@@ -407,6 +407,21 @@ cell AMX_NATIVE_CALL Native::GetAttributeValueFloat(AMX* amx, cell* params)
 
 			return amx_ftoc(floatValue);
 		}
+	}
+
+	return 0;
+}
+
+cell AMX_NATIVE_CALL Native::GetAttributeValueBool(AMX* amx, cell* params)
+{
+	QXMLAttribute* attribute = gXMLHandler->getAttributeByHandle(params[1]);
+
+	if (attribute != NULL && attribute->isCreated())
+	{
+		const XMLAttribute* attributePointer = attribute->getAttributePointer();
+
+		if (attributePointer != NULL)
+			return (static_cast<int>(attributePointer->BoolValue()));
 	}
 
 	return 0;
